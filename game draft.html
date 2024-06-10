@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        canvas {
+            background-color: rgb(245, 245, 222);
+            border: 1px black;
+        }
+    </style>
+</head>
+<body>
+<canvas width="720" height="480" id="game"></canvas>
+<script>
+
+  //                Things to fix:
+  // coins flicker when limit>1 and you grab one
+  // add sprites to character and enemies
+  // add more upgrades
+  //
+  //
+  //
+
+
+  var canvas = document.getElementById('game');
+  var ctx = canvas.getContext('2d');
+  var background = new Image();
+  background.src = "GrassBackground.jpg";
+
+  background.onload = function(){
+    ctx.drawImage(background,0,0,480, background.height * 480 / background.width);
+  }
+  
+  var grid = 24;
+  var count = 0;
+  var score = 100000000;
+  var totalscore = 1000000;
+  var upgdisplayed = 0;
+  var upgy = 0;
+  var upgrade = {
+    a: 0,
+    b: 0,
+    c: 0,
+    d: 0,
+    e: 0,
+    f: 0,
+    g: 0,
+    h: 0,
+    i: 0,
+    j: 0,
+  }
+  var character = {
+    x: 240,
+    y: 240, 
+    xvel: grid,
+    yvel: 0,
+    shield: 0,
+  }
+  var popup = {
+    a: 0,
+    b: 0,
+  }
+  //mouse position
+  var rect = 0;
+  var mousePos = 0;
+  var mx = 0;
+  var my = 0;
+  function getMousePos(canvas, evt) {
+    var rect = canvas.getBoundingClientRect();
+    return {
+        x: evt.clientX - rect.left,
+        y: evt.clientY - rect.top
+    };
+  }
+  //coins
+  function getRandomInt(min, max) {
+      return Math.floor(Math.random() * (max - min)) + min;
+    }
+  function removeItem(arr, value) {
+    var i = 0;
+    while (i < arr.length) {
+      if (arr[i] === value) {
+        arr.splice(i, 1);
+      } else {
+        ++i;
+      }
+    }
+    return arr;
+  }
+  var coinslocation = [];
+    //brown coins
+    var bcoins = {
+      number: 0,
+      max: 1,
+      value: 1,
+      x: 0,
+      y: 0,
+      loc: [],
+    }
+    var bx = 0;
+
+    //silver coins
+    var scoins = {
+      number: 0,
+      max: 0,
+      value: 3,
+      x: 0,
+      y: 0,
+      loc: [],
+    }
+    var sx = 0;
+
+    //gold coins
+    var gcoins = {
+      number: 0,
+      max: 0,
+      value: 10,
+      x: 0,
+      y: 0,
+      loc: [],
+    }
+    var gx = 0;
+
+    //Enemies
+    var enemies = {
+      movprob: 5,
+      number: 0,
+      max: 0,
+      value: 25,
+      x: 0,
+      y: 0,
+      loc: [],
+    }
+    var eincrease = 0;
+    var ex = 0;
+    var ec = 0;
+    var ecdirection = 0;
+
+    //gameloop
+  function loop() {
+    requestAnimationFrame(loop);
+    if (++count < 4) {
+     return;
+    }
+    count = 0;
+    ctx.clearRect(0,0, canvas.width, canvas.height);
+    character.x += character.xvel;
+    character.y += character.yvel;
+    ctx.font = "20px Arial";
+    ctx.drawImage(background,0,0,480, background.height * 480 / background.width);
+    
+
+    //make character loop through screen
+    if (character.x < 0) {
+      character.x = 480 - grid;
+    }
+    else if (character.x >= 480) {
+      character.x = 0;
+    }
+    if (character.y < 0) {
+      character.y = canvas.height - grid;
+    }
+    else if (character.y >= canvas.height) {
+      character.y = 0;
+    }
+    //draw character+barrier
+    ctx.fillStyle = "blue";
+    ctx.fillRect(character.x, character.y, grid, grid);
+    ctx.fillStyle = "black";
+    ctx.fillRect(480, 0, 1, 480);
+    
+    //brown coins
+    if (bcoins.number < bcoins.max){
+      var bx = getRandomInt(101, 1212);
+      for ( x = 0; x < bcoins.max; x++) {
+        if (bx === coinslocation[x]){
+          bx = getRandomInt(101, 1112);
+          x = 0;
+        }
+        else if (bcoins.number < bcoins.max){
+          bcoins.loc.push(bx);
+          coinslocation.push(bx);
+          ++bcoins.number; 
+        }
+      }
+    }
+    
+    bcoins.loc.forEach((element) => {
+      ctx.fillStyle = "brown";
+      bcoins.x=((Math.round(element/58)-1)*grid);
+      bcoins.y=(element%20)*grid;
+      if(bcoins.x-24 === character.x && bcoins.y === character.y){
+        score = score+bcoins.value;
+        totalscore = totalscore+bcoins.value;
+        removeItem(bcoins.loc, element);
+        removeItem(coinslocation, element);
+        bcoins.number--;
+      }
+      else{
+        ctx.fillRect(bcoins.x-16, bcoins.y+6, grid/3, grid/2);
+      }
+    });
+
+    //silver coins
+    if (scoins.number < scoins.max){
+      var sx = getRandomInt(101, 1212);
+      for ( x = 0; x < scoins.max; x++) {
+        if (sx === coinslocation[x]){
+          sx = getRandomInt(101, 1112);
+          x = 0;
+        }
+        else if (scoins.number < scoins.max){
+          scoins.loc.push(sx);
+          coinslocation.push(sx);
+          ++scoins.number; 
+        }
+      }
+    }
+    
+    scoins.loc.forEach((element) => {
+      ctx.fillStyle = "grey";
+      scoins.x=((Math.round(element/58)-1)*grid);
+      scoins.y=(element%20)*grid;
+      if(scoins.x-24 === character.x && scoins.y === character.y){
+        score = score+scoins.value;
+        totalscore = totalscore+scoins.value;
+        removeItem(scoins.loc, element);
+        removeItem(coinslocation, element);
+        scoins.number--;
+      }
+      else{
+        ctx.fillRect(scoins.x-16, scoins.y+6, grid/3, grid/2);
+      }
+    });
+
+//gold coins
+    if (gcoins.number < gcoins.max){
+      var gx = getRandomInt(101, 1212);
+      for ( x = 0; x < gcoins.max; x++) {
+        if (gx === coinslocation[x]){
+          gx = getRandomInt(101, 1112);
+          x = 0;
+        }
+        else if (gcoins.number < gcoins.max){
+          gcoins.loc.push(gx);
+          coinslocation.push(gx);
+          ++gcoins.number; 
+        }
+      }
+    }
+    
+    gcoins.loc.forEach((element) => {
+      ctx.fillStyle = "gold";
+      gcoins.x=((Math.round(element/58)-1)*grid);
+      gcoins.y=(element%20)*grid;
+      if(gcoins.x-24 === character.x && gcoins.y === character.y){
+        score = score+gcoins.value;
+        totalscore = totalscore+gcoins.value;
+        removeItem(gcoins.loc, element);
+        removeItem(coinslocation, element);
+        gcoins.number--;
+      }
+      else{
+        ctx.fillRect(gcoins.x-16, gcoins.y+6, grid/3, grid/2);
+      }
+    });
+
+    //enemies
+    if (enemies.number < enemies.max){
+        ex = getRandomInt(101, 1212);
+        enemies.loc.push(ex);
+        ++enemies.number; 
+    }
+    
+    enemies.loc.forEach((element) => {
+        ec =  getRandomInt(1, 100); 
+        ecdirection =  getRandomInt(1,100); 
+        if (enemies.movprob > ec) {
+            if (ecdirection < 26 && (element%24) < 20){
+                enemies.loc.push(element+1);
+                removeItem(enemies.loc, element);
+            } else if (ecdirection > 25 && ecdirection < 51 && (element%24) > 0){
+                enemies.loc.push(element-1);
+                removeItem(enemies.loc, element);
+            } else if (ecdirection > 50 && ecdirection < 76 && (Math.round(element/60)) < 20 ){
+                enemies.loc.push(element+100);
+                removeItem(enemies.loc, element);
+            } else if (ecdirection > 75 && (Math.round(element/60)) > 0 ){
+                enemies.loc.push(element-100);
+                removeItem(enemies.loc, element);
+            }
+        } 
+        ctx.fillStyle = "red";
+        enemies.x=((Math.round(element/58)-1)*grid);
+        enemies.y=(element%20)*grid;
+        if(enemies.x-24 === character.x && enemies.y === character.y){
+            if (score > enemies.value - 1 - character.shield){
+                score = score - (enemies.value - character.shield);
+                totalscore = totalscore - (enemies.value - character.shield);
+                ctx.fillStyle = "ORANGE";
+              ctx.fillRect(character.x, character.y, grid, grid);
+            } else {
+                score = 0;
+            }
+            removeItem(enemies.loc, element);
+            enemies.max--;
+            enemies.number--;
+        } else if (enemies.x < 485){
+            ctx.fillRect(enemies.x-18, enemies.y+6, grid/2, grid/2);
+        } else {
+          removeItem(enemies.loc, element);
+          enemies.max--;
+          enemies.number--;
+        }
+        
+    });
+
+    //upgrades tab
+
+    //SCoins Upgrade
+    if(totalscore > -1 && scoins.max == 0 && upgrade.a < 2){
+      if (scoins.max < 1 && upgdisplayed == 0){
+        upgdisplayed = 1;
+        upgrade.a = 1;
+      }
+      ctx.fillStyle = "grey";
+      upgy = (upgrade.a*54)-18;
+      ctx.fillRect(487, upgy, 226, 46);
+      ctx.fillStyle = "black";
+      ctx.fillText ("Silver Coins! (10)", 495, upgy+30);
+      canvas.addEventListener("click", function (evt) {
+        var mousePos = getMousePos(canvas, evt);
+        if(mousePos.x > 486 && mousePos.x < 713 && mousePos.y > (upgrade.a*54)-19 && mousePos.y < (upgrade.a*54)+12 && score > 9 && scoins.max == 0){
+          upgrade.a = 2;
+          scoins.max = 1;
+          score = score-10;
+          upgdisplayed= upgdisplayed-1;
+        }
+      }, false);
+    }
+
+    //Better Bcoin Value (2) Upgrade
+    if(totalscore > 14 && upgrade.b < 3){
+      if (upgdisplayed == 0 && upgrade.b == 0){
+        upgdisplayed = 1;
+        upgrade.b = 1;
+      }
+      if (upgdisplayed == 1){
+        if (upgrade.b == 0){
+          upgdisplayed = 2;
+          upgrade.b = 2;
+        } else if (upgrade.b == 2){
+          upgrade.b = 1;
+        }
+      }
+      if (upgdisplayed > 1 && upgrade.b == 2 && upgrade.a != 1){
+          upgrade.b = 1;
+      }
+      ctx.fillStyle = "grey";
+      upgy = (upgrade.b*54)-18;
+      ctx.fillRect(487, upgy, 226, 46);
+      ctx.fillStyle = "black";
+      ctx.fillText ("Better Coins! (25)", 495, upgy+30);
+      canvas.addEventListener("click", function (evt) {
+        var mousePos = getMousePos(canvas, evt);
+        if(mousePos.x > 486 && mousePos.x < 713 && mousePos.y > (upgrade.b*54)-19 && mousePos.y < (upgrade.b*54)+12 && score > 24 && bcoins.value == 1){
+          upgrade.b = 3;
+          bcoins.value = 2;
+          score = score-25;
+          upgdisplayed= upgdisplayed-1;
+        }
+      }, false);
+    }
+     
+    //Second Brown Coin
+    if(totalscore > 30 && upgrade.c < 4){
+      if (upgdisplayed == 0 && upgrade.c == 0){
+        upgdisplayed = 1;
+        upgrade.c = 1;
+      }
+      if (upgdisplayed == 1){
+        if (upgrade.c == 0){
+          upgdisplayed = 2;
+          upgrade.c = 2;
+        } else if (upgrade.c == 2){
+          upgrade.c = 1;
+        }
+      }
+      if (upgdisplayed == 2){
+        if (upgrade.c == 0){
+          upgdisplayed = 3;
+          upgrade.c = 3;
+        } else if (upgrade.c == 2 && upgrade.b != 1  && upgrade.a != 1){
+          upgrade.c = 1;
+        } else if (upgrade.c == 3){
+          upgrade.c = 2;
+        }
+      }
+      if (upgrade.c != 4 && upgrade.c != 0){
+        if (upgrade.c == 3 && upgrade.b != 2){
+          upgrade.c = 2;
+        } else if (upgrade.c == 2 && upgrade.b != 1 && upgrade.a != 1){
+          upgrade.c = 1;
+        }
+      }
+      ctx.fillStyle = "grey";
+      upgy = (upgrade.c*54)-18;
+      ctx.fillRect(487, upgy, 226, 46);
+      ctx.fillStyle = "black";
+      ctx.fillText ("More Coins! (50)", 495, upgy+30);
+      canvas.addEventListener("click", function (evt) {
+        var mousePos = getMousePos(canvas, evt);
+        if(mousePos.x > 486 && mousePos.x < 713 && mousePos.y > (upgrade.c*54)-19 && mousePos.y < (upgrade.c*54)+12 && score > 49 && bcoins.max == 1){
+          upgrade.c = 4;
+          bcoins.max = 2;
+          score = score-50;
+          upgdisplayed= upgdisplayed-1;
+        }
+      }, false);
+    }
+
+    //Weak Shield Upgrade
+    if(totalscore > 50 && upgrade.d < 5){
+      if (upgdisplayed == 0){
+        upgdisplayed = 1;
+        upgrade.d = 1;
+      }
+      if (upgdisplayed == 1){
+        if (upgrade.d == 0){
+          upgdisplayed = 2;
+          upgrade.d = 2;
+        } else if (upgrade.d == 2){
+          upgrade.d = 1;
+        }
+      }
+      if (upgdisplayed == 2){
+        if (upgrade.d == 0){
+          upgdisplayed = 3;
+          upgrade.d = 3;
+        } else if (upgrade.d == 3){
+          upgrade.d = 2;
+        }
+      }
+      if (upgdisplayed == 3){
+        if (upgrade.d == 0){
+          upgdisplayed = 4;
+          upgrade.d = 4;
+        } else if (upgrade.d == 4){
+          upgrade.d = 3;
+        }
+      }
+      if (upgrade.d != 5 && upgrade.d != 0){
+        if (upgrade.d == 4 && upgrade.c != 3){
+          upgrade.d = 3;
+        } else if (upgrade.d == 3 && upgrade.c != 2 && upgrade.b != 2){
+          upgrade.d = 2;
+        } else if (upgrade.d == 2 && upgrade.c != 1 && upgrade.b != 1 && upgrade.a != 1){
+          upgrade.d = 1;
+        }
+      }
+      ctx.fillStyle = "grey";
+      upgy = (upgrade.d*54)-18;
+      ctx.fillRect(487, upgy, 226, 46);
+      ctx.fillStyle = "black";
+      ctx.fillText ("Weak Shield! (75)", 495, upgy+30);
+      canvas.addEventListener("click", function (evt) {
+        var mousePos = getMousePos(canvas, evt);
+        if(mousePos.x > 486 && mousePos.x < 713 && mousePos.y > (upgrade.d*54)-19 && mousePos.y < (upgrade.d*54)+12 && score > 74 && character.shield == 0 ){
+          upgrade.d = 5;
+          character.shield = character.shield+15;
+          score = score-75;
+          upgdisplayed= upgdisplayed-1;
+        }
+      }, false);
+    }
+
+    //Second Silver Coin + third brown Upgrade
+    if(totalscore > 100 && upgrade.e < 6){
+      if (upgdisplayed == 0 && upgrade.e == 0){
+        upgdisplayed = 1;
+        upgrade.e = 1;
+      }
+      if (upgdisplayed == 1){
+        if (upgrade.e == 0){
+          upgdisplayed = 2;
+          upgrade.e = 2;
+        } else if (upgrade.e == 2){
+          upgrade.e = 1;
+        }
+      }
+      if (upgdisplayed == 2){
+        if (upgrade.e == 0){
+          upgdisplayed = 3;
+          upgrade.e = 3;
+        } else if (upgrade.e == 3){
+          upgrade.e = 2;
+        }
+      }
+      if (upgdisplayed == 3){
+        if (upgrade.e == 0){
+          upgdisplayed = 4;
+          upgrade.e = 4;
+        } else if (upgrade.e == 4){
+          upgrade.e = 3;
+        }
+      }
+      if (upgdisplayed == 4){
+        if (upgrade.e == 0){
+          upgdisplayed = 5;
+          upgrade.e = 5;
+        } else if (upgrade.e == 5){
+          upgrade.e = 4;
+        }
+      }
+      if (upgrade.e != 6 && upgrade.e != 0){
+        if (upgrade.e == 5 && upgrade.d != 4){
+          upgrade.e = 4;
+        } else if (upgrade.e == 4 && upgrade.d != 3 && upgrade.c != 3){
+          upgrade.e = 3;
+        } else if (upgrade.e == 3 && upgrade.d != 2 && upgrade.c != 2 && upgrade.b != 2){
+          upgrade.e = 2;
+        } else if (upgrade.e == 2 && upgrade.d != 1 && upgrade.c != 1 && upgrade.b != 1 && upgrade.a != 1){
+          upgrade.e = 1;
+        }
+      }
+      ctx.fillStyle = "grey";
+      upgy = (upgrade.e*54)-18;
+      ctx.fillRect(487, upgy, 226, 46);
+      ctx.fillStyle = "black";
+      ctx.fillText ("More+Better Coins(100)", 495, upgy+30);
+      canvas.addEventListener("click", function (evt) {
+        var mousePos = getMousePos(canvas, evt);
+        if(mousePos.x > 486 && mousePos.x < 713 && mousePos.y > (upgrade.e*54)-19 && mousePos.y < (upgrade.e*54)+12 && score > 99 && scoins.max == 1){
+          upgrade.e = 6;
+          scoins.max = 2;
+          scoins.value = 5;
+          bcoins.max = 3;
+          bcoins.value = 3;
+          score = score-100;
+          upgdisplayed= upgdisplayed-1;
+        }
+      }, false);
+    }
+
+    //Sword Upgrade
+    if(totalscore > 150 && upgrade.f < 7){
+      if (upgdisplayed == 0 && upgrade.f == 0){
+        upgdisplayed = 1;
+        upgrade.f = 1;
+      }
+      if (upgdisplayed == 1){
+        if (upgrade.f == 0){
+          upgdisplayed = 2;
+          upgrade.f = 2;
+        } else if (upgrade.f == 2){
+          upgrade.f = 1;
+        }
+      }
+      if (upgdisplayed == 2){
+        if (upgrade.f == 0){
+          upgdisplayed = 3;
+          upgrade.f = 3;
+        } else if (upgrade.f == 3){
+          upgrade.f = 2;
+        }
+      }
+      if (upgdisplayed == 3){
+        if (upgrade.f == 0){
+          upgdisplayed = 4;
+          upgrade.f = 4;
+        } else if (upgrade.f == 4){
+          upgrade.f = 3;
+        }
+      }
+      if (upgdisplayed == 4){
+        if (upgrade.f == 0){
+          upgdisplayed = 5;
+          upgrade.f = 5;
+        } else if (upgrade.f == 5){
+          upgrade.f = 4;
+        }
+      }
+      if (upgdisplayed == 5){
+        if (upgrade.f == 0){
+          upgdisplayed = 6;
+          upgrade.f = 6;
+        } else if (upgrade.f == 6){
+          upgrade.f = 5;
+        }
+      }
+      if (upgrade.f != 7 && upgrade.f != 0){
+        if (upgrade.f == 6 && upgrade.e != 5){
+          upgrade.f = 5;
+        } else if (upgrade.f == 5 && upgrade.e != 4 && upgrade.d != 4){
+          upgrade.f = 4;
+        } else if (upgrade.f == 4 && upgrade.e != 3 && upgrade.d != 3 && upgrade.c != 3){
+          upgrade.f = 3;
+        } else if (upgrade.f == 3 && upgrade.e != 2 && upgrade.d != 2 && upgrade.c != 2 && upgrade.b != 2){
+          upgrade.f = 2;
+        } else if (upgrade.f == 2 && upgrade.e != 1 && upgrade.d != 1 && upgrade.c != 1 && upgrade.b != 1 && upgrade.a != 1){
+          upgrade.f = 1;
+        }
+      }
+      ctx.fillStyle = "grey";
+      upgy = (upgrade.f*54)-18;
+      ctx.fillRect(487, upgy, 226, 46);
+      ctx.fillStyle = "black";
+      ctx.fillText ("Sword! (150)", 495, upgy+30);
+      canvas.addEventListener("click", function (evt) {
+        var mousePos = getMousePos(canvas, evt);
+        if(mousePos.x > 486 && mousePos.x < 713 && mousePos.y > (upgrade.f*54)-19 && mousePos.y < (upgrade.f*54)+12 && score > 149 && upgrade.f != 7){
+          upgrade.f = 7;
+          character.shield = character.shield+35;
+          score = score-150;
+          upgdisplayed= upgdisplayed-1;
+        }
+      }, false);
+    }
+
+    //gcoin upgrade
+    if(totalscore > 250 && upgrade.g < 8){
+      if (upgdisplayed == 0 && upgrade.g == 0){
+        upgdisplayed = 1;
+        upgrade.g = 1;
+      }
+      if (upgdisplayed == 1){
+        if (upgrade.g == 0){
+          upgdisplayed = 2;
+          upgrade.g = 2;
+        } else if (upgrade.g == 2){
+          upgrade.g = 1;
+        }
+      }
+      if (upgdisplayed == 2){
+        if (upgrade.g == 0){
+          upgdisplayed = 3;
+          upgrade.g = 3;
+        } else if (upgrade.g == 3){
+          upgrade.g = 2;
+        }
+      }
+      if (upgdisplayed == 3){
+        if (upgrade.g == 0){
+          upgdisplayed = 4;
+          upgrade.g = 4;
+        } else if (upgrade.g == 4){
+          upgrade.g = 3;
+        }
+      }
+      if (upgdisplayed == 4){
+        if (upgrade.g == 0){
+          upgdisplayed = 5;
+          upgrade.g = 5;
+        } else if (upgrade.g == 5){
+          upgrade.g = 4;
+        }
+      }
+      if (upgdisplayed == 5){
+        if (upgrade.g == 0){
+          upgdisplayed = 6;
+          upgrade.g = 6;
+        } else if (upgrade.g == 6){
+          upgrade.g = 5;
+        }
+      }
+      if (upgdisplayed == 6){
+        if (upgrade.g == 0){
+          upgdisplayed = 7;
+          upgrade.g = 7;
+        } else if (upgrade.g == 7){
+          upgrade.g = 6;
+        }
+      }
+      if (upgrade.g != 8 && upgrade.g != 0){
+        if (upgrade.g == 7 && upgrade.f != 6){
+          upgrade.g = 6;
+        } else if (upgrade.g == 6 && upgrade.f != 5 && upgrade.e != 5){
+          upgrade.g = 5;
+        } else if (upgrade.g == 5 && upgrade.f != 4 && upgrade.e != 4 && upgrade.d != 4){
+          upgrade.g = 4;
+        } else if (upgrade.g == 4 && upgrade.f != 3 && upgrade.e != 3 && upgrade.d != 3 && upgrade.c != 3){
+          upgrade.g = 3;
+        } else if (upgrade.g == 3 && upgrade.f != 2 && upgrade.e != 2 && upgrade.d != 2 && upgrade.c != 2 && upgrade.b != 2){
+          upgrade.g = 2;
+        } else if (upgrade.g == 2 && upgrade.f != 1 && upgrade.e != 1 && upgrade.d != 1 && upgrade.c != 1 && upgrade.b != 1 && upgrade.a != 1){
+          upgrade.g = 1;
+        }
+      }
+      ctx.fillStyle = "grey";
+      upgy = (upgrade.g*54)-18;
+      ctx.fillRect(487, upgy, 226, 46);
+      ctx.fillStyle = "black";
+      ctx.fillText ("Gold Coins! (200)", 495, upgy+30);
+      canvas.addEventListener("click", function (evt) {
+        var mousePos = getMousePos(canvas, evt);
+        if(mousePos.x > 486 && mousePos.x < 713 && mousePos.y > (upgrade.g*54)-19 && mousePos.y < (upgrade.g*54)+12 && score > 199 && gcoins.max == 0){
+          upgrade.g = 8;
+          gcoins.max = 1;
+          score = score-200;
+          upgdisplayed= upgdisplayed-1;
+        }
+      }, false);
+    }
+
+    //gcoin upgrade
+    if(totalscore > 300 && upgrade.h < 9){
+      if (upgdisplayed == 0 && upgrade.h == 0){
+        upgdisplayed = 1;
+        upgrade.h = 1;
+      }
+      if (upgdisplayed == 1){
+        if (upgrade.h == 0){
+          upgdisplayed = 2;
+          upgrade.h = 2;
+        } else if (upgrade.h == 2){
+          upgrade.h = 1;
+        }
+      }
+      if (upgdisplayed == 2){
+        if (upgrade.h == 0){
+          upgdisplayed = 3;
+          upgrade.h = 3;
+        } else if (upgrade.h == 3){
+          upgrade.h = 2;
+        }
+      }
+      if (upgdisplayed == 3){
+        if (upgrade.h == 0){
+          upgdisplayed = 4;
+          upgrade.h = 4;
+        } else if (upgrade.h == 4){
+          upgrade.h = 3;
+        }
+      }
+      if (upgdisplayed == 4){
+        if (upgrade.h == 0){
+          upgdisplayed = 5;
+          upgrade.h = 5;
+        } else if (upgrade.h == 5){
+          upgrade.h = 4;
+        }
+      }
+      if (upgdisplayed == 5){
+        if (upgrade.h == 0){
+          upgdisplayed = 6;
+          upgrade.h = 6;
+        } else if (upgrade.h == 6){
+          upgrade.h = 5;
+        }
+      }
+      if (upgdisplayed == 6){
+        if (upgrade.h == 0){
+          upgdisplayed = 7;
+          upgrade.h = 7;
+        } else if (upgrade.h == 7){
+          upgrade.h = 6;
+        }
+      }
+      if (upgdisplayed == 7){
+        if (upgrade.h == 0){
+          upgdisplayed = 8;
+          upgrade.h = 8;
+        } else if (upgrade.h == 8){
+          upgrade.h = 7;
+        }
+      }
+      if (upgrade.h != 9 && upgrade.h != 0){
+        if (upgrade.h == 8 && upgrade.g != 7){
+          upgrade.h = 7;
+        } else if (upgrade.h == 7 && upgrade.g != 6 && upgrade.f != 6){
+          upgrade.h = 6;
+        }else if (upgrade.h == 6 && upgrade.g != 5 && upgrade.f != 5 && upgrade.e != 5){
+          upgrade.h = 5;
+        } else if (upgrade.h == 5 && upgrade.g != 4 && upgrade.f != 4 && upgrade.e != 4 && upgrade.d != 4){
+          upgrade.h = 4;
+        } else if (upgrade.h == 4 && upgrade.g != 3 && upgrade.f != 3 && upgrade.e != 3 && upgrade.d != 3 && upgrade.c != 3){
+          upgrade.h = 3;
+        } else if (upgrade.h == 3 && upgrade.g != 2 && upgrade.f != 2 && upgrade.e != 2 && upgrade.d != 2 && upgrade.c != 2 && upgrade.b != 2){
+          upgrade.h = 2;
+        } else if (upgrade.h == 2 && upgrade.g != 1 && upgrade.f != 1 && upgrade.e != 1 && upgrade.d != 1 && upgrade.c != 1 && upgrade.b != 1 && upgrade.a != 1){
+          upgrade.h = 1;
+        }
+      }
+      ctx.fillStyle = "grey";
+      upgy = (upgrade.h*54)-18;
+      ctx.fillRect(487, upgy, 226, 46);
+      ctx.fillStyle = "black";
+      ctx.fillText ("More Coins! (200)", 495, upgy+30);
+      canvas.addEventListener("click", function (evt) {
+        var mousePos = getMousePos(canvas, evt);
+        if(mousePos.x > 486 && mousePos.x < 713 && mousePos.y > (upgrade.h*54)-19 && mousePos.y < (upgrade.h*54)+12 && score > 199 && scoins.max == 2){
+          upgrade.h = 9;
+          scoins.max = 3;
+          bcoins.max = 4;
+          score = score-200;
+          upgdisplayed= upgdisplayed-1;
+        }
+      }, false);
+    }
+    
+    //testing
+    console.log(bcoins.max);
+
+    //weak enemies
+    if (totalscore > 99 && popup.a == 0){
+      popup.a = 1;
+      enemies.max = 1;
+      window.alert("Enemies now Appear!");
+      window.alert("Red enemies take 25 coins from you!");
+    }
+    if (totalscore > 349 && popup.a == 1){
+      popup.a = 2;
+      enemies.value = enemies.value+25;
+      window.alert("Red enemies now take 50 coins from you!");
+    }
+    if (totalscore > 549 && popup.a == 2){
+      popup.a = 3;
+      enemies.value = enemies.value+50;
+      window.alert("Red enemies now take 100 coins from you!");
+    }
+
+    if (totalscore > 100){
+      eincrease = getRandomInt(1,1000);
+      if (eincrease < 100 && enemies.max == 0){
+        enemies.max++;
+      } else if (eincrease < 31 && enemies.max == 1 && totalscore > 125){
+        enemies.max++;
+      } else if (eincrease < 18 && enemies.max == 2 && totalscore > 150){
+        enemies.max++;
+      } else if (eincrease < 8 && enemies.max == 3 && totalscore > 200){
+        enemies.max++;
+      } else if (eincrease < 5 && enemies.max == 4 && totalscore > 250){
+        enemies.max++;
+      } else if (eincrease < 2 && enemies.max > 4 && totalscore > 350){
+        enemies.max++;
+      }
+    }
+
+
+
+    //draw score
+    ctx.fillStyle = "black";
+    ctx.font = "20px Arial";
+    ctx.fillText("Coins: "+score, 0, 20);
+    //draw Upgrades text
+    ctx.fillStyle = "black";
+    ctx.font = "20px Arial";
+    ctx.fillText("Upgrades:", 488, 20);
+  }
+  //character direction
+  document.addEventListener('keydown', function(e){
+    if (e.keyCode === 37 || e.keyCode === 65){
+      character.yvel = 0;
+      character.xvel = -grid
+    }
+    else if (e.keyCode === 38 || e.keyCode === 87){
+      character.yvel = -grid;
+      character.xvel = 0;
+    }
+    else if (e.keyCode === 39 || e.keyCode === 68){
+      character.yvel = 0;
+      character.xvel = grid;
+    }
+    else if (e.keyCode === 40 || e.keyCode === 83){
+      character.yvel = grid;
+      character.xvel = 0;
+    }
+  })
+  requestAnimationFrame(loop);
+</script>
+</body>
+</html>
